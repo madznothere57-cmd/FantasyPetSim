@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MythKeep</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --castle-bg:#1a1a2e;--castle-mid:#16213e;--castle-accent:#0f3460;
+  --gold:#e2b04a;--gold-light:#f5d07a;--stone:#8b7d6b;--stone-light:#b8a99a;
+  --hp-green:#4caf7d;--mood-yellow:#f5c842;--quest-blue:#4a9eff;--rest-purple:#9b6dff;
+}
+body{background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:'Nunito',sans-serif;}
+.app{background:var(--castle-bg);width:660px;border-radius:12px;overflow:hidden;color:#e8dcc8;box-shadow:0 8px 40px rgba(0,0,0,0.7);}
+.castle-header{background:var(--castle-mid);border-bottom:3px solid var(--gold);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;}
+.castle-title{font-family:'Press Start 2P',monospace;font-size:9px;color:var(--gold);letter-spacing:1px;}
+.castle-subtitle{font-size:11px;color:var(--stone-light);margin-top:3px;}
+.day-badge{background:var(--castle-accent);border:2px solid var(--gold);border-radius:8px;padding:4px 10px;font-family:'Press Start 2P',monospace;font-size:7px;color:var(--gold-light);}
+.main-area{display:grid;grid-template-columns:1fr 200px;height:480px;}
+.dragon-room{background:linear-gradient(180deg,#1a1a2e 0%,#0d1b2a 60%,#1a0a0a 100%);position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:20px;overflow:hidden;}
+.stars{position:absolute;top:0;left:0;right:0;height:45%;pointer-events:none;}
+.star{position:absolute;width:2px;height:2px;background:#fff;border-radius:50%;}
+.torch{position:absolute;top:80px;width:14px;display:flex;flex-direction:column;align-items:center;}
+.torch-left{left:24px;}.torch-right{right:24px;}
+.torch-flame{width:10px;height:14px;background:#ff6b2b;border-radius:50% 50% 30% 30%;animation:flicker 0.3s infinite alternate;position:relative;}
+.torch-flame::after{content:'';position:absolute;top:2px;left:2px;width:6px;height:8px;background:#ffd700;border-radius:50% 50% 30% 30%;}
+@keyframes flicker{from{transform:scaleX(1) rotate(-2deg);}to{transform:scaleX(0.85) rotate(2deg);}}
+.torch-stick{width:6px;height:20px;background:#6b4c2a;border-radius:0 0 2px 2px;}
+.floor-tiles{position:absolute;bottom:0;left:0;right:0;height:60px;background:repeating-linear-gradient(90deg,#2a1a1a 0px,#2a1a1a 39px,#1a0a0a 39px,#1a0a0a 40px);border-top:3px solid #4a2a2a;}
+.dragon-bed{position:absolute;bottom:12px;left:16px;z-index:8;}
+.dragon-wrap{position:relative;z-index:10;display:flex;flex-direction:column;align-items:center;cursor:pointer;}
+.dragon-name-tag{font-family:'Press Start 2P',monospace;font-size:7px;color:var(--gold);text-align:center;margin-bottom:6px;text-shadow:2px 2px 0 rgba(0,0,0,0.5);}
+.sprite-window{width:180px;height:180px;position:relative;overflow:hidden;flex-shrink:0;}
+#sprite-img{position:absolute;display:block;visibility:hidden;mix-blend-mode:lighten;image-rendering:pixelated;image-rendering:crisp-edges;max-width:none;max-height:none;}
+
+/* Clothing layers on top of sprite */
+.outfit-layer{position:absolute;width:100%;height:100%;top:0;left:0;pointer-events:none;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;z-index:12;}
+.outfit-hat{position:absolute;top:4px;left:50%;transform:translateX(-50%);font-size:36px;line-height:1;filter:drop-shadow(0 2px 2px rgba(0,0,0,0.5));}
+.outfit-acc{position:absolute;bottom:38px;left:50%;transform:translateX(-50%);font-size:26px;line-height:1;filter:drop-shadow(0 2px 2px rgba(0,0,0,0.5));}
+.outfit-body{position:absolute;bottom:28px;left:50%;transform:translateX(-50%);font-size:30px;line-height:1;filter:drop-shadow(0 2px 2px rgba(0,0,0,0.5));}
+
+.sleeping-wrap{display:none;position:relative;z-index:10;flex-direction:column;align-items:center;}
+.sleeping-sprite{font-size:56px;animation:sleepbob 2s ease-in-out infinite;}
+@keyframes sleepbob{0%,100%{transform:translateY(0);}50%{transform:translateY(-4px);}}
+.zzz{position:absolute;top:-10px;right:-10px;font-family:'Press Start 2P',monospace;font-size:8px;color:#9b6dff;animation:zzz 1.5s ease-in-out infinite;}
+@keyframes zzz{0%{opacity:0;transform:translateY(0) scale(0.8);}50%{opacity:1;}100%{opacity:0;transform:translateY(-14px) scale(1.1);}}
+.sleep-name{font-family:'Press Start 2P',monospace;font-size:7px;color:var(--rest-purple);text-align:center;margin-top:4px;}
+.speech-bubble{position:absolute;bottom:210px;left:50%;transform:translateX(-50%);background:#fff;color:#1a1a2e;border-radius:12px;padding:8px 12px;font-size:12px;font-weight:700;white-space:nowrap;z-index:20;box-shadow:0 2px 8px rgba(0,0,0,0.4);animation:popIn 0.2s ease-out;pointer-events:none;}
+.speech-bubble::after{content:'';position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);border:8px solid transparent;border-top-color:#fff;border-bottom:none;}
+@keyframes popIn{from{transform:translateX(-50%) scale(0.5);opacity:0;}to{transform:translateX(-50%) scale(1);opacity:1;}}
+.quest-away{display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;z-index:10;}
+.quest-icon{font-size:48px;animation:float 2s ease-in-out infinite;}
+@keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
+.quest-text{font-family:'Press Start 2P',monospace;font-size:7px;color:var(--quest-blue);margin-top:8px;}
+.quest-timer{font-size:13px;color:var(--stone-light);margin-top:6px;}
+
+.sidebar{background:var(--castle-mid);border-left:3px solid var(--gold);display:flex;flex-direction:column;padding:12px;gap:12px;overflow:hidden;}
+.stat-block{display:flex;flex-direction:column;gap:6px;}
+.stat-label{font-family:'Press Start 2P',monospace;font-size:6px;color:var(--stone-light);}
+.stat-bar-bg{height:10px;background:#0d1b2a;border-radius:5px;border:1.5px solid var(--castle-accent);overflow:hidden;}
+.stat-bar-fill{height:100%;border-radius:5px;transition:width 0.5s ease;}
+.stat-bar-fill.hunger{background:var(--gold);}
+.stat-bar-fill.mood{background:var(--mood-yellow);}
+.stat-bar-fill.energy{background:var(--hp-green);}
+.stat-value{font-family:'Press Start 2P',monospace;font-size:6px;color:#e8dcc8;text-align:right;}
+.divider{height:1px;background:var(--castle-accent);flex-shrink:0;}
+.section-label{font-family:'Press Start 2P',monospace;font-size:6px;color:var(--gold);}
+.action-btn{background:var(--castle-accent);border:2px solid var(--stone);border-radius:8px;color:#e8dcc8;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;padding:8px 10px;cursor:pointer;transition:all 0.15s;text-align:left;display:flex;align-items:center;gap:6px;width:100%;}
+.action-btn:hover:not(:disabled){background:#1a3a5c;border-color:var(--gold);color:var(--gold-light);transform:translateY(-1px);}
+.action-btn:disabled{opacity:0.4;cursor:not-allowed;}
+.action-btn.quest-btn{border-color:var(--quest-blue);color:var(--quest-blue);}
+.action-btn.quest-btn:hover:not(:disabled){background:#0a2040;border-color:#7bc4ff;color:#7bc4ff;}
+.action-btn.rest-btn{border-color:var(--rest-purple);color:var(--rest-purple);}
+.action-btn.rest-btn:hover:not(:disabled){background:#1a0a30;border-color:#c4a0ff;color:#c4a0ff;}
+.action-btn.wardrobe-btn{border-color:#ff9eb5;color:#ff9eb5;}
+.action-btn.wardrobe-btn:hover:not(:disabled){background:#2a0a18;border-color:#ffccd8;color:#ffccd8;}
+.action-btn.return-btn{border-color:var(--hp-green);color:var(--hp-green);animation:pulse-btn 1s ease-in-out infinite;}
+@keyframes pulse-btn{0%,100%{box-shadow:0 0 0 0 rgba(76,175,125,0.4);}50%{box-shadow:0 0 0 6px rgba(76,175,125,0);}}
+.wake-btn{border-color:var(--mood-yellow)!important;color:var(--mood-yellow)!important;}
+.wake-btn:hover:not(:disabled){background:#1a1500!important;border-color:#ffe066!important;color:#ffe066!important;}
+.action-section{display:flex;flex-direction:column;gap:8px;}
+.inventory-section{flex:1;display:flex;flex-direction:column;gap:8px;min-height:0;}
+.inventory-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;}
+.inv-slot{background:#0d1b2a;border:1.5px solid var(--castle-accent);border-radius:6px;aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;transition:border-color 0.15s;}
+.inv-slot:hover:not(.empty){border-color:var(--gold);}
+.inv-slot.empty{opacity:0.3;cursor:default;}
+
+/* Wardrobe modal */
+.modal-overlay{position:fixed;inset:0;z-index:199;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;}
+.wardrobe-modal{background:var(--castle-mid);border:2px solid var(--gold);border-radius:16px;width:580px;max-height:85vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 12px 48px rgba(0,0,0,0.8);}
+.wardrobe-header{background:var(--castle-bg);border-bottom:2px solid var(--gold);padding:14px 18px;display:flex;align-items:center;justify-content:space-between;}
+.wardrobe-title{font-family:'Press Start 2P',monospace;font-size:8px;color:var(--gold);}
+.wardrobe-close{background:none;border:1.5px solid var(--stone);border-radius:6px;color:var(--stone-light);font-size:14px;cursor:pointer;padding:4px 10px;font-family:'Nunito',sans-serif;font-weight:700;}
+.wardrobe-close:hover{border-color:var(--gold);color:var(--gold-light);}
+.wardrobe-tabs{display:flex;border-bottom:1.5px solid var(--castle-accent);}
+.tab-btn{flex:1;padding:10px;font-family:'Press Start 2P',monospace;font-size:6px;color:var(--stone-light);background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s;}
+.tab-btn.active{color:var(--gold);border-bottom-color:var(--gold);}
+.tab-btn:hover:not(.active){color:#e8dcc8;}
+.wardrobe-body{padding:16px;overflow-y:auto;flex:1;}
+
+/* Equipped display */
+.equipped-preview{display:flex;gap:12px;margin-bottom:16px;}
+.equipped-slot{flex:1;background:var(--castle-bg);border:1.5px solid var(--castle-accent);border-radius:10px;padding:10px;text-align:center;}
+.equipped-slot-label{font-family:'Press Start 2P',monospace;font-size:5px;color:var(--stone-light);margin-bottom:6px;}
+.equipped-slot-item{font-size:28px;min-height:36px;display:flex;align-items:center;justify-content:center;}
+.equipped-slot-name{font-size:9px;color:var(--stone-light);margin-top:4px;min-height:12px;}
+.equipped-slot.has-item{border-color:var(--gold);}
+.unequip-btn{font-size:9px;color:#ff6b6b;cursor:pointer;margin-top:4px;background:none;border:none;font-family:'Nunito',sans-serif;font-weight:700;}
+.unequip-btn:hover{color:#ff9999;}
+
+/* Clothes grid */
+.clothes-section-label{font-family:'Press Start 2P',monospace;font-size:6px;color:var(--gold);margin-bottom:10px;}
+.clothes-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;}
+.clothes-card{background:var(--castle-bg);border:1.5px solid var(--castle-accent);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;transition:all 0.15s;position:relative;}
+.clothes-card:hover{border-color:var(--gold);transform:translateY(-2px);}
+.clothes-card.equipped{border-color:#ff9eb5;background:#1a0a12;}
+.clothes-card.locked{opacity:0.45;cursor:default;}
+.clothes-card.locked:hover{transform:none;border-color:var(--castle-accent);}
+.clothes-emoji{font-size:28px;margin-bottom:4px;}
+.clothes-name{font-size:9px;font-weight:700;color:#e8dcc8;line-height:1.3;}
+.clothes-slot-tag{font-size:8px;color:var(--stone-light);margin-top:2px;}
+.clothes-card .lock-icon{position:absolute;top:4px;right:6px;font-size:10px;}
+.clothes-card.equipped::after{content:'✓';position:absolute;top:4px;right:6px;font-size:10px;color:#ff9eb5;font-weight:700;}
+.shop-note{font-size:11px;color:var(--stone-light);text-align:center;margin-top:8px;line-height:1.6;}
+
+.item-popup{position:fixed;z-index:300;background:var(--castle-mid);border:2px solid var(--gold);border-radius:12px;padding:16px;min-width:180px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.7);animation:popIn 0.15s ease-out;top:50%;left:50%;transform:translate(-50%,-50%);}
+.item-popup-emoji{font-size:40px;margin-bottom:8px;}
+.item-popup-name{font-family:'Press Start 2P',monospace;font-size:7px;color:var(--gold);line-height:1.6;margin-bottom:6px;}
+.item-popup-desc{font-size:11px;color:var(--stone-light);margin-bottom:12px;line-height:1.5;}
+.item-popup-close{background:var(--castle-accent);border:1.5px solid var(--stone);border-radius:6px;color:#e8dcc8;font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;padding:5px 14px;cursor:pointer;}
+.popup-overlay{position:fixed;inset:0;z-index:299;background:rgba(0,0,0,0.4);}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--castle-mid);border:2px solid var(--gold);border-radius:10px;padding:8px 16px;font-size:12px;font-weight:700;color:var(--gold-light);white-space:nowrap;z-index:100;animation:toastIn 0.3s ease-out;pointer-events:none;}
+@keyframes toastIn{from{transform:translateX(-50%) translateY(20px);opacity:0;}to{transform:translateX(-50%) translateY(0);opacity:1;}}
+@keyframes twinkle{from{opacity:0.3;}to{opacity:1;}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="castle-header">
+    <div>
+      <div class="castle-title">MYTHKEEP</div>
+      <div class="castle-subtitle">Your cozy fantasy castle</div>
+    </div>
+    <div class="day-badge" id="day-badge">DAY 1</div>
+  </div>
+  <div class="main-area">
+    <div class="dragon-room" id="dragon-room">
+      <div class="stars" id="stars"></div>
+      <div class="torch torch-left"><div class="torch-flame"></div><div class="torch-stick"></div></div>
+      <div class="torch torch-right"><div class="torch-flame"></div><div class="torch-stick"></div></div>
+      <div class="floor-tiles"></div>
+      <div class="dragon-bed">
+        <svg width="90" height="48" viewBox="0 0 90 48" xmlns="http://www.w3.org/2000/svg">
+          <rect x="4" y="20" width="82" height="24" rx="3" fill="#3a1a0a"/>
+          <rect x="4" y="20" width="82" height="24" rx="3" fill="none" stroke="#6b3a1a" stroke-width="1.5"/>
+          <rect x="8" y="16" width="74" height="20" rx="3" fill="#7b3f6e"/>
+          <rect x="10" y="14" width="22" height="14" rx="4" fill="#e8c4d8"/>
+          <rect x="30" y="18" width="50" height="16" rx="3" fill="#4a2a6e"/>
+          <rect x="36" y="21" width="6" height="4" rx="1" fill="#6a4a9e" opacity="0.6"/>
+          <rect x="48" y="21" width="6" height="4" rx="1" fill="#6a4a9e" opacity="0.6"/>
+          <rect x="60" y="21" width="6" height="4" rx="1" fill="#6a4a9e" opacity="0.6"/>
+          <rect x="2" y="10" width="14" height="34" rx="3" fill="#5a2a0e"/>
+          <circle cx="9" cy="24" r="3" fill="#e2b04a" opacity="0.8"/>
+          <rect x="8" y="40" width="6" height="8" rx="1" fill="#3a1a0a"/>
+          <rect x="76" y="40" width="6" height="8" rx="1" fill="#3a1a0a"/>
+        </svg>
+      </div>
+      <div class="dragon-wrap" id="dragon-wrap" onclick="petDragon()">
+        <div class="dragon-name-tag" id="dragon-name-tag">EMBER</div>
+        <div class="sprite-window">
+          <img id="sprite-img" src="IMG_0228.png" alt="">
+          <div class="outfit-layer" id="outfit-layer">
+            <div class="outfit-hat" id="outfit-hat"></div>
+            <div class="outfit-acc" id="outfit-acc"></div>
+            <div class="outfit-body" id="outfit-body"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sleeping-wrap" id="sleeping-wrap">
+        <div style="position:relative;display:inline-block;">
+          <div class="sleeping-sprite">🐉</div>
+          <div class="zzz">z z z</div>
+        </div>
+        <div class="sleep-name">EMBER IS RESTING...</div>
+      </div>
+      <div class="quest-away" id="quest-away">
+        <div class="quest-icon">🗺️</div>
+        <div class="quest-text">ON QUEST!</div>
+        <div class="quest-timer" id="quest-timer-text">Returns soon...</div>
+      </div>
+    </div>
+    <div class="sidebar">
+      <div class="stat-block">
+        <div style="display:flex;justify-content:space-between"><span class="stat-label">HUNGER</span><span class="stat-value" id="hunger-val">80%</span></div>
+        <div class="stat-bar-bg"><div class="stat-bar-fill hunger" id="hunger-bar" style="width:80%"></div></div>
+        <div style="display:flex;justify-content:space-between"><span class="stat-label">MOOD</span><span class="stat-value" id="mood-val">70%</span></div>
+        <div class="stat-bar-bg"><div class="stat-bar-fill mood" id="mood-bar" style="width:70%"></div></div>
+        <div style="display:flex;justify-content:space-between"><span class="stat-label">ENERGY</span><span class="stat-value" id="energy-val">100%</span></div>
+        <div class="stat-bar-bg"><div class="stat-bar-fill energy" id="energy-bar" style="width:100%"></div></div>
+      </div>
+      <div class="divider"></div>
+      <div class="action-section">
+        <div class="section-label">ACTIONS</div>
+        <button class="action-btn" id="feed-btn" onclick="feedDragon()">🍖 Feed</button>
+        <button class="action-btn" id="pet-btn" onclick="petDragon()">✨ Pet</button>
+        <button class="action-btn rest-btn" id="rest-btn" onclick="restDragon()">🛏️ Rest</button>
+        <button class="action-btn rest-btn wake-btn" id="wake-btn" onclick="wakeDragon()" style="display:none">☀️ Wake Up</button>
+        <button class="action-btn quest-btn" id="quest-btn" onclick="sendOnQuest()">⚔️ Send on Quest</button>
+        <button class="action-btn wardrobe-btn" id="wardrobe-btn" onclick="openWardrobe()">👗 Wardrobe</button>
+        <button class="action-btn return-btn" id="return-btn" onclick="returnFromQuest()" style="display:none">🎁 Ember's Back!</button>
+      </div>
+      <div class="divider"></div>
+      <div class="inventory-section">
+        <div class="section-label">LOOT CHEST</div>
+        <div class="inventory-grid" id="inv-grid"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const FRAMES={
+  idle:[{sx:23,sy:41,sw:101,sh:128},{sx:149,sy:41,sw:101,sh:128},{sx:275,sy:41,sw:102,sh:128},{sx:403,sy:41,sw:103,sh:128},{sx:534,sy:41,sw:101,sh:128}],
+  happy:[{sx:20,sy:228,sw:104,sh:136},{sx:141,sy:228,sw:104,sh:136},{sx:267,sy:228,sw:108,sh:136},{sx:398,sy:228,sw:117,sh:136},{sx:532,sy:228,sw:111,sh:136}],
+  eating:[{sx:699,sy:228,sw:113,sh:136},{sx:822,sy:228,sw:110,sh:136},{sx:938,sy:228,sw:81,sh:136},{sx:1030,sy:228,sw:102,sh:136},{sx:1144,sy:228,sw:115,sh:136},{sx:1271,sy:228,sw:120,sh:136}],
+  quest_departure:[{sx:24,sy:437,sw:116,sh:141},{sx:171,sy:437,sw:116,sh:141},{sx:314,sy:437,sw:148,sh:141},{sx:479,sy:437,sw:145,sh:141},{sx:664,sy:437,sw:147,sh:141},{sx:845,sy:437,sw:178,sh:141},{sx:1053,sy:437,sw:180,sh:141},{sx:1290,sy:437,sw:94,sh:141}],
+  quest_return:[{sx:319,sy:595,sw:159,sh:155},{sx:511,sy:595,sw:146,sh:155},{sx:689,sy:595,sw:152,sh:155},{sx:875,sy:595,sw:121,sh:155},{sx:1032,sy:595,sw:116,sh:155}]
+};
+const SPEEDS={idle:200,happy:120,eating:150,quest_departure:110,quest_return:130};
+const SHEET_W=1408,SHEET_H=768,WIN=180;
+
+// All clothing items
+const CLOTHES={
+  // HATS
+  h_witch:    {id:'h_witch',   slot:'hat', emoji:'🧙',  name:'Witch Hat',      desc:'A classic pointy hat. Very magical.',        owned:true},
+  h_crown:    {id:'h_crown',   slot:'hat', emoji:'👑',  name:'Tiny Crown',     desc:'For the royalest of dragons.',               owned:true},
+  h_tophat:   {id:'h_tophat',  slot:'hat', emoji:'🎩',  name:'Top Hat',        desc:'Dapper. Incredibly dapper.',                 owned:true},
+  h_party:    {id:'h_party',   slot:'hat', emoji:'🎉',  name:'Party Hat',      desc:'Every day is a celebration with Ember.',     owned:false},
+  h_cowboy:   {id:'h_cowboy',  slot:'hat', emoji:'🤠',  name:'Cowboy Hat',     desc:'Yeehaw. Dragon rodeo champion.',             owned:false},
+  h_santa:    {id:'h_santa',   slot:'hat', emoji:'🎅',  name:'Santa Hat',      desc:'Ho ho ho! Dragon Claus is coming.',          owned:false},
+  h_flower:   {id:'h_flower',  slot:'hat', emoji:'🌸',  name:'Flower Crown',   desc:'Soft petals for a fearsome beast.',          owned:false},
+  h_pirate:   {id:'h_pirate',  slot:'hat', emoji:'🏴‍☠️', name:'Pirate Hat',     desc:'Yarrr! She plunders the skies.',            owned:false},
+  // ACCESSORIES
+  a_bow:      {id:'a_bow',     slot:'acc', emoji:'🎀',  name:'Pink Bow',       desc:'Cute and she knows it.',                     owned:true},
+  a_glasses:  {id:'a_glasses', slot:'acc', emoji:'🕶️',  name:'Cool Shades',    desc:'Too cool for dragon school.',                owned:true},
+  a_scarf:    {id:'a_scarf',   slot:'acc', emoji:'🧣',  name:'Cozy Scarf',     desc:'Keeps her neck warm between fire blasts.',   owned:false},
+  a_medal:    {id:'a_medal',   slot:'acc', emoji:'🏅',  name:'Gold Medal',     desc:'First place in being adorable.',             owned:false},
+  a_gem:      {id:'a_gem',     slot:'acc', emoji:'💎',  name:'Gem Necklace',   desc:'Ember hoards AND wears treasure.',           owned:false},
+  a_heart:    {id:'a_heart',   slot:'acc', emoji:'💝',  name:'Heart Locket',   desc:'Full of tiny dragon memories.',              owned:false},
+  // OUTFITS
+  o_cape:     {id:'o_cape',    slot:'body',emoji:'🦸',  name:'Hero Cape',      desc:'She already saves the day by existing.',     owned:true},
+  o_coat:     {id:'o_coat',    slot:'body',emoji:'🧥',  name:'Fancy Coat',     desc:'A distinguished explorer\'s coat.',          owned:true},
+  o_tux:      {id:'o_tux',     slot:'body',emoji:'🤵',  name:'Tuxedo',         desc:'Ember, licensed to chomp.',                  owned:false},
+  o_kimono:   {id:'o_kimono',  slot:'body',emoji:'👘',  name:'Kimono',         desc:'Elegant. She bows before breathing fire.',   owned:false},
+  o_knight:   {id:'o_knight',  slot:'body',emoji:'⚔️',  name:'Knight Armour',  desc:'The bravest knight in all the land.',        owned:false},
+  o_wizard:   {id:'o_wizard',  slot:'body',emoji:'🧙‍♀️', name:'Wizard Robe',    desc:'Ancient arcane knowledge. Plus pockets.',   owned:false},
+};
+
+// Quest loot — some clothes included!
+const questLootPool=[
+  {emoji:'💎',name:'Sapphire gem',type:'item'},{emoji:'🪙',name:'Ancient coin',type:'item'},
+  {emoji:'📜',name:'Old scroll',type:'item'},{emoji:'🗡️',name:'Tiny sword',type:'item'},
+  {emoji:'🧤',name:'Flame gauntlet',type:'item'},{emoji:'🔮',name:'Crystal orb',type:'item'},
+  {emoji:'🦴',name:'Dragon fossil',type:'item'},{emoji:'🧸',name:'Stuffed knight',type:'item'},
+  {emoji:'⚗️',name:'Mystery potion',type:'item'},{emoji:'🪬',name:'Lucky charm',type:'item'},
+  // Clothes from quests
+  {type:'clothes',clothesId:'h_party'},{type:'clothes',clothesId:'h_cowboy'},
+  {type:'clothes',clothesId:'h_pirate'},{type:'clothes',clothesId:'h_flower'},
+  {type:'clothes',clothesId:'h_santa'},{type:'clothes',clothesId:'a_scarf'},
+  {type:'clothes',clothesId:'a_medal'},{type:'clothes',clothesId:'a_gem'},
+  {type:'clothes',clothesId:'a_heart'},{type:'clothes',clothesId:'o_tux'},
+  {type:'clothes',clothesId:'o_kimono'},{type:'clothes',clothesId:'o_knight'},
+  {type:'clothes',clothesId:'o_wizard'},
+];
+
+const itemDescs={
+  '💎':'A brilliant gem from a crystal cave.','🪙':'A coin from a forgotten kingdom.',
+  '📜':'A scroll covered in dragon script.','🗡️':'A tiny sword for a dragon\'s hoard.',
+  '🧤':'A gauntlet still warm to the touch.','👑':'A cracked crown from someone important.',
+  '🪬':'A charm humming with good luck.','🍄':'A glowing mushroom from the Enchanted Forest.',
+  '⚗️':'A swirling potion of unknown origin.','🔮':'A crystal orb showing tiny clouds.',
+  '🦴':'A fossilized dragon bone, very old.','🧸':'A stuffed knight. Ember loves it.',
+};
+
+const state={
+  day:1,hunger:80,mood:70,energy:100,
+  onQuest:false,isResting:false,questPhase:'idle',
+  inventory:[],
+  equipped:{hat:null,acc:null,body:null},
+  feedCooldown:false,petCooldown:false,
+  currentAnim:'idle',animFrame:0,animTimer:null,
+  speechTimeout:null,toastTimeout:null,restInterval:null,
+};
+
+const speech={
+  pet:['*happy rumble*','Rawrr~ ♥','*wiggles wings*','Hehe~','More pets!!'],
+  feed:['YUMMY!!','*nom nom nom*','FOOD!!!','Delicious~'],
+  quest:['Off I go!','Adventure!!','I\'ll find treasure!'],
+  return:['I\'M BACK!','Look what I found!','Miss me?~'],
+  rest:['*yawn*','Sleepy...','Nap time~','zzzz...'],
+  wake:['Good morning!','Ready to go!','*big stretch*','Refreshed!'],
+  dress:['Ooh fancy!','Do I look good?~','*struts*','Fashion icon!'],
+};
+
+const img=document.getElementById('sprite-img');
+
+function showFrame(){
+  const frames=FRAMES[state.currentAnim];if(!frames)return;
+  const f=frames[state.animFrame%frames.length];
+  const scale=Math.min(WIN/f.sw,WIN/f.sh)*0.88;
+  img.style.width=Math.round(SHEET_W*scale)+'px';img.style.height=Math.round(SHEET_H*scale)+'px';
+  img.style.left=Math.round((WIN-f.sw*scale)/2-f.sx*scale)+'px';img.style.top=Math.round((WIN-f.sh*scale)/2-f.sy*scale)+'px';
+  img.style.visibility='visible';
+}
+
+function playAnim(name,opts={}){
+  if(state.animTimer){clearInterval(state.animTimer);state.animTimer=null;}
+  state.currentAnim=name;state.animFrame=0;showFrame();
+  const frames=FRAMES[name];const speed=SPEEDS[name]||150;
+  state.animTimer=setInterval(()=>{
+    state.animFrame++;
+    if(opts.once&&state.animFrame>=frames.length){clearInterval(state.animTimer);state.animTimer=null;if(opts.onDone)opts.onDone();return;}
+    showFrame();
+  },speed);
+}
+
+function rand(a){return a[Math.floor(Math.random()*a.length)];}
+
+function showSpeech(text){
+  document.querySelector('.speech-bubble')?.remove();
+  if(state.speechTimeout)clearTimeout(state.speechTimeout);
+  const b=document.createElement('div');b.className='speech-bubble';b.textContent=text;
+  document.getElementById('dragon-room').appendChild(b);
+  state.speechTimeout=setTimeout(()=>b.remove(),2200);
+}
+
+function showToast(text){
+  document.querySelector('.toast')?.remove();
+  if(state.toastTimeout)clearTimeout(state.toastTimeout);
+  const t=document.createElement('div');t.className='toast';t.textContent=text;
+  document.body.appendChild(t);
+  state.toastTimeout=setTimeout(()=>t.remove(),2800);
+}
+
+function updateStats(){
+  const cl=v=>Math.max(0,Math.min(100,v));
+  state.hunger=cl(state.hunger);state.mood=cl(state.mood);state.energy=cl(state.energy);
+  ['hunger','mood','energy'].forEach(s=>{
+    document.getElementById(s+'-bar').style.width=state[s]+'%';
+    document.getElementById(s+'-val').textContent=Math.round(state[s])+'%';
+  });
+}
+
+function syncButtons(){
+  const busy=state.onQuest||state.isResting;
+  document.getElementById('feed-btn').disabled=busy||state.feedCooldown;
+  document.getElementById('pet-btn').disabled=busy||state.petCooldown;
+  document.getElementById('rest-btn').style.display=busy?'none':'flex';
+  document.getElementById('wake-btn').style.display=state.isResting?'flex':'none';
+  document.getElementById('quest-btn').style.display=busy?'none':'flex';
+  document.getElementById('wardrobe-btn').style.display=state.onQuest?'none':'flex';
+  document.getElementById('return-btn').style.display=(state.questPhase==='returned')?'flex':'none';
+}
+
+function updateOutfitDisplay(){
+  const slots={hat:'outfit-hat',acc:'outfit-acc',body:'outfit-body'};
+  Object.entries(slots).forEach(([slot,elId])=>{
+    const el=document.getElementById(elId);
+    const equipped=state.equipped[slot];
+    el.textContent=equipped?CLOTHES[equipped].emoji:'';
+  });
+}
+
+function showDragon(){document.getElementById('dragon-wrap').style.display='flex';}
+function hideDragon(){document.getElementById('dragon-wrap').style.display='none';}
+
+function equipItem(id){
+  const item=CLOTHES[id];if(!item||!item.owned)return;
+  const slot=item.slot;
+  if(state.equipped[slot]===id){
+    state.equipped[slot]=null;
+  } else {
+    state.equipped[slot]=id;
+    showSpeech(rand(speech.dress));
+  }
+  updateOutfitDisplay();
+  renderWardrobe();
+}
+
+function unequipSlot(slot){
+  state.equipped[slot]=null;
+  updateOutfitDisplay();
+  renderWardrobe();
+}
+
+// Wardrobe modal
+let wardrobeTab='wardrobe';
+
+function openWardrobe(){
+  wardrobeTab='wardrobe';
+  renderWardrobeModal();
+}
+
+function renderWardrobeModal(){
+  document.querySelector('.modal-overlay')?.remove();
+  const overlay=document.createElement('div');overlay.className='modal-overlay';
+  overlay.onclick=(e)=>{if(e.target===overlay)closeWardrobe();};
+
+  const modal=document.createElement('div');modal.className='wardrobe-modal';
+  modal.innerHTML=`
+    <div class="wardrobe-header">
+      <div class="wardrobe-title">👗 EMBER'S WARDROBE</div>
+      <button class="wardrobe-close" onclick="closeWardrobe()">✕ Close</button>
+    </div>
+    <div class="wardrobe-tabs">
+      <button class="tab-btn ${wardrobeTab==='wardrobe'?'active':''}" onclick="switchTab('wardrobe')">🧺 Wardrobe</button>
+      <button class="tab-btn ${wardrobeTab==='shop'?'active':''}" onclick="switchTab('shop')">🛍️ Shop</button>
+    </div>
+    <div class="wardrobe-body" id="wardrobe-body"></div>
+  `;
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+  renderWardrobe();
+}
+
+function switchTab(tab){
+  wardrobeTab=tab;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.textContent.includes(tab==='wardrobe'?'Wardrobe':'Shop')));
+  renderWardrobe();
+}
+
+function renderWardrobe(){
+  const body=document.getElementById('wardrobe-body');if(!body)return;
+
+  if(wardrobeTab==='wardrobe'){
+    const slotNames={hat:'Hat',acc:'Accessory',body:'Outfit'};
+    const slotEmojis={hat:'🎩',acc:'✨',body:'👘'};
+    let html=`<div class="equipped-preview">`;
+    ['hat','acc','body'].forEach(slot=>{
+      const eq=state.equipped[slot];
+      const item=eq?CLOTHES[eq]:null;
+      html+=`<div class="equipped-slot ${eq?'has-item':''}">
+        <div class="equipped-slot-label">${slotEmojis[slot]} ${slotNames[slot].toUpperCase()}</div>
+        <div class="equipped-slot-item">${item?item.emoji:'—'}</div>
+        <div class="equipped-slot-name">${item?item.name:''}</div>
+        ${eq?`<button class="unequip-btn" onclick="unequipSlot('${slot}')">Remove</button>`:''}
+      </div>`;
+    });
+    html+=`</div>`;
+
+    ['hat','acc','body'].forEach(slot=>{
+      const slotLabel={hat:'🎩 Hats',acc:'✨ Accessories',body:'👘 Outfits'}[slot];
+      const items=Object.values(CLOTHES).filter(c=>c.slot===slot&&c.owned);
+      if(!items.length)return;
+      html+=`<div class="clothes-section-label">${slotLabel}</div><div class="clothes-grid">`;
+      items.forEach(item=>{
+        const isEq=state.equipped[slot]===item.id;
+        html+=`<div class="clothes-card ${isEq?'equipped':''}" onclick="equipItem('${item.id}')" title="${item.desc}">
+          <div class="clothes-emoji">${item.emoji}</div>
+          <div class="clothes-name">${item.name}</div>
+          <div class="clothes-slot-tag">${{hat:'Hat',acc:'Accessory',body:'Outfit'}[item.slot]}</div>
+        </div>`;
+      });
+      html+=`</div>`;
+    });
+
+    const locked=Object.values(CLOTHES).filter(c=>!c.owned);
+    if(locked.length){
+      html+=`<div class="clothes-section-label" style="color:var(--stone-light)">🔒 Not Yet Found</div><div class="clothes-grid">`;
+      locked.forEach(item=>{
+        html+=`<div class="clothes-card locked" title="Find on quests or in the shop!">
+          <div class="clothes-emoji" style="filter:grayscale(1)">❓</div>
+          <div class="clothes-name" style="color:var(--stone-light)">???</div>
+          <div class="clothes-slot-tag">Find it!</div>
+        </div>`;
+      });
+      html+=`</div>`;
+    }
+    body.innerHTML=html;
+
+  } else {
+    // Shop tab
+    const shopItems=Object.values(CLOTHES).filter(c=>!c.owned);
+    let html=`<div class="clothes-section-label">🛍️ Free Shop — Claim anything!</div>`;
+    if(!shopItems.length){
+      html+=`<p class="shop-note">🎉 You own everything in the shop! Send Ember on quests to find even more items.</p>`;
+    } else {
+      html+=`<div class="clothes-grid">`;
+      shopItems.forEach(item=>{
+        html+=`<div class="clothes-card" onclick="claimShopItem('${item.id}')" title="${item.desc}">
+          <div class="clothes-emoji">${item.emoji}</div>
+          <div class="clothes-name">${item.name}</div>
+          <div class="clothes-slot-tag">FREE</div>
+        </div>`;
+      });
+      html+=`</div>`;
+    }
+    html+=`<p class="shop-note">💡 Ember can also bring back clothes from quests — keep sending her out!</p>`;
+    body.innerHTML=html;
+  }
+}
+
+function claimShopItem(id){
+  if(CLOTHES[id])CLOTHES[id].owned=true;
+  showToast(CLOTHES[id].emoji+' '+CLOTHES[id].name+' added to wardrobe!');
+  renderWardrobe();
+}
+
+function closeWardrobe(){
+  document.querySelector('.modal-overlay')?.remove();
+}
+
+function restDragon(){
+  if(state.onQuest||state.isResting||state.energy>=100)return;
+  state.isResting=true;syncButtons();showSpeech(rand(speech.rest));
+  hideDragon();document.getElementById('sleeping-wrap').style.display='flex';
+  state.restInterval=setInterval(()=>{state.energy=Math.min(100,state.energy+5);updateStats();if(state.energy>=100)wakeDragon();},2000);
+}
+
+function wakeDragon(){
+  if(!state.isResting)return;state.isResting=false;
+  if(state.restInterval){clearInterval(state.restInterval);state.restInterval=null;}
+  document.getElementById('sleeping-wrap').style.display='none';showDragon();syncButtons();
+  showSpeech(rand(speech.wake));playAnim('happy');
+  setTimeout(()=>{if(!state.onQuest&&!state.isResting)playAnim('idle');},2000);
+}
+
+function feedDragon(){
+  if(state.onQuest||state.feedCooldown||state.isResting)return;
+  state.feedCooldown=true;state.hunger=Math.min(100,state.hunger+25);state.mood=Math.min(100,state.mood+5);
+  updateStats();showSpeech(rand(speech.feed));playAnim('eating');syncButtons();
+  setTimeout(()=>{state.feedCooldown=false;syncButtons();playAnim('idle');},2400);
+}
+
+function petDragon(){
+  if(state.onQuest||state.petCooldown||state.isResting)return;
+  state.petCooldown=true;state.mood=Math.min(100,state.mood+20);
+  updateStats();showSpeech(rand(speech.pet));playAnim('happy');syncButtons();
+  setTimeout(()=>{state.petCooldown=false;syncButtons();playAnim('idle');},2000);
+}
+
+function sendOnQuest(){
+  if(state.onQuest||state.isResting||state.energy<20)return;
+  state.onQuest=true;state.questPhase='departing';
+  state.energy=Math.max(0,state.energy-30);
+  updateStats();showSpeech(rand(speech.quest));syncButtons();
+  const depDuration=SPEEDS.quest_departure*FRAMES.quest_departure.length+300;
+  let depDone=false;
+  function onDepart(){
+    if(depDone)return;depDone=true;state.questPhase='away';
+    hideDragon();document.getElementById('quest-away').style.display='block';
+    const duration=12000+Math.random()*6000;
+    let remaining=Math.ceil(duration/1000);
+    const timerEl=document.getElementById('quest-timer-text');
+    const cd=setInterval(()=>{remaining--;timerEl.textContent=remaining>0?`Returns in ${remaining}s...`:'Returning...';if(remaining<=0)clearInterval(cd);},1000);
+    setTimeout(()=>{
+      clearInterval(cd);
+      document.getElementById('quest-away').style.display='none';showDragon();
+      state.onQuest=false;state.questPhase='returning';
+      state.energy=Math.min(100,state.energy+10);state.day++;updateStats();
+      document.getElementById('day-badge').textContent='DAY '+state.day;
+      const retDuration=SPEEDS.quest_return*FRAMES.quest_return.length+300;
+      let retDone=false;
+      function onReturn(){
+        if(retDone)return;retDone=true;state.questPhase='returned';
+        playAnim('idle');showSpeech(rand(speech.return));syncButtons();
+      }
+      playAnim('quest_return',{once:true,onDone:onReturn});
+      setTimeout(onReturn,retDuration);
+    },duration);
+  }
+  playAnim('quest_departure',{once:true,onDone:onDepart});
+  setTimeout(onDepart,depDuration);
+}
+
+function returnFromQuest(){
+  if(state.questPhase!=='returned')return;
+  state.questPhase='idle';syncButtons();
+  // Pick loot — weighted chance for clothes if not all owned
+  const unownedClothes=questLootPool.filter(l=>l.type==='clothes'&&!CLOTHES[l.clothesId].owned);
+  const pool=Math.random()<0.35&&unownedClothes.length?unownedClothes:questLootPool.filter(l=>l.type==='item');
+  const loot=rand(pool);
+  if(loot.type==='clothes'){
+    const item=CLOTHES[loot.clothesId];item.owned=true;
+    state.inventory.push({emoji:item.emoji,name:item.name,isClothes:true,clothesId:item.id});
+    showToast('Ember found: '+item.emoji+' '+item.name+'! (New clothing!)');
+  } else {
+    state.inventory.push({emoji:loot.emoji,name:loot.name});
+    showToast('Ember found: '+loot.emoji+' '+loot.name+'!');
+  }
+  renderInventory();
+}
+
+function showItemPopup(item){
+  document.querySelector('.popup-overlay')?.remove();document.querySelector('.item-popup')?.remove();
+  const overlay=document.createElement('div');overlay.className='popup-overlay';overlay.onclick=closePopup;document.body.appendChild(overlay);
+  const popup=document.createElement('div');popup.className='item-popup';
+  const desc=item.isClothes?CLOTHES[item.clothesId]?.desc:itemDescs[item.emoji]||'A curious treasure.';
+  const extra=item.isClothes?`<button class="item-popup-close" style="margin-right:8px;border-color:#ff9eb5;color:#ff9eb5;" onclick="closePopup();openWardrobe()">Open Wardrobe</button>`:'';
+  popup.innerHTML=`<div class="item-popup-emoji">${item.emoji}</div><div class="item-popup-name">${item.name.toUpperCase()}</div><div class="item-popup-desc">${desc}</div><div>${extra}<button class="item-popup-close" onclick="closePopup()">Close</button></div>`;
+  document.body.appendChild(popup);
+}
+
+function closePopup(){document.querySelector('.popup-overlay')?.remove();document.querySelector('.item-popup')?.remove();}
+
+function renderInventory(){
+  const grid=document.getElementById('inv-grid');grid.innerHTML='';
+  for(let i=0;i<9;i++){
+    const s=document.createElement('div');
+    if(state.inventory[i]){
+      s.className='inv-slot';s.textContent=state.inventory[i].emoji;s.title=state.inventory[i].name;
+      if(state.inventory[i].isClothes)s.style.borderColor='#ff9eb5';
+      const item=state.inventory[i];s.onclick=()=>showItemPopup(item);
+    }else{s.className='inv-slot empty';s.textContent='·';}
+    grid.appendChild(s);
+  }
+}
+
+function generateStars(){
+  const c=document.getElementById('stars');
+  for(let i=0;i<24;i++){
+    const s=document.createElement('div');s.className='star';
+    s.style.cssText=`left:${Math.random()*100}%;top:${Math.random()*100}%;animation:twinkle ${1.5+Math.random()}s ${Math.random()*2}s infinite alternate;opacity:${0.3+Math.random()*0.7}`;
+    c.appendChild(s);
+  }
+}
+
+generateStars();renderInventory();updateStats();syncButtons();updateOutfitDisplay();
+img.onload=()=>playAnim('idle');
+img.onerror=()=>{document.querySelector('.sprite-window').innerHTML='<div style="font-size:80px;line-height:180px;text-align:center">🐉</div>';};
+setInterval(()=>{
+  if(!state.onQuest){
+    state.hunger=Math.max(0,state.hunger-1.5);state.mood=Math.max(0,state.mood-0.8);
+    if(!state.isResting)state.energy=Math.min(100,state.energy+1);
+    updateStats();
+  }
+},8000);
+</script>
+</body>
+</html>
